@@ -14,7 +14,7 @@ class LSTest {
     void simpleDirectoryTest() {
         String[] command = "-o file.out files".split(" ");
         LS.main(command);
-        assertFileContent("""
+        assertFileContent("file.out", """
                 directory
                 file1.txt
                 file2
@@ -27,7 +27,7 @@ class LSTest {
     void longFormatTest() {
         String[] command = "-l -o file.out files".split(" ");
         LS.main(command);
-        assertFileContent("""
+        assertFileContent("file.out", """
                 directory 111 02/23/2023 15:48:33 0 byte(s)
                 file1.txt 111 02/24/2023 01:10:14 1367 byte(s)
                 file2 111 02/24/2023 01:11:24 138876 byte(s)
@@ -40,7 +40,7 @@ class LSTest {
     void humanReadableTest() {
         String[] command = "-l -h -o file.out files".split(" ");
         LS.main(command);
-        assertFileContent("""
+        assertFileContent("file.out", """
                 directory rwx 02/23/2023 15:48:33 0 byte(s)
                 file1.txt rwx 02/24/2023 01:10:14 2.0 kilobyte(s)
                 file2 rwx 02/24/2023 01:11:24 136.0 kilobyte(s)
@@ -53,7 +53,7 @@ class LSTest {
     void reverseTest() {
         String[] command = "-l -h -r -o file.out files".split(" ");
         LS.main(command);
-        assertFileContent("""
+        assertFileContent("file.out", """
                 file4.in rwx 02/24/2023 01:12:10 352 byte(s)
                 file3.out rwx 02/23/2023 15:45:07 0 byte(s)
                 file2 rwx 02/24/2023 01:11:24 136.0 kilobyte(s)
@@ -70,7 +70,7 @@ class LSTest {
             LS.main(command);
             System.out.flush();
             System.setOut(System.out);
-            assertFileContent("pom.xml");
+            assertFileContent("console.txt", "pom.xml");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -80,12 +80,12 @@ class LSTest {
     void simpleFileTest() {
         String[] command = "-o file.out pom.xml".split(" ");
         LS.main(command);
-        assertFileContent("pom.xml");
+        assertFileContent("file.out", "pom.xml");
     }
 
-    private void assertFileContent(String expectedContent) {
+    private void assertFileContent(String fileName, String expectedContent) {
         try {
-            String content = new String(Files.readAllBytes(Paths.get("file.out")));
+            String content = new String(Files.readAllBytes(Paths.get(fileName)));
             assertEquals(expectedContent, content);
         } catch (IOException e) {
             e.printStackTrace();
