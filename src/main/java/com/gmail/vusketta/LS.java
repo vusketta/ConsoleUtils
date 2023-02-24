@@ -16,23 +16,20 @@ public class LS {
         final Path path = Path.of(arguments.getDirectoryOrFile());
         try (Stream<Path> pathStream = Files.walk(Paths.get(arguments.getDirectoryOrFile()), 1)
                 .sorted(arguments.isReverse() ? Comparator.reverseOrder() : Comparator.naturalOrder())) {
-            Writer out = new BufferedWriter(
-                    new OutputStreamWriter(
-                            arguments.getOutputName() == null ? System.out : new FileOutputStream(arguments.getOutputName())
-                    )
-            );
-            if (!Files.isDirectory(path)) {
-                writeFile(arguments, out, path);
-                out.close();
-            } else {
+            OutputStream outputStream =
+                    arguments.getOutputName() == null ? System.out : new FileOutputStream(arguments.getOutputName());
+            Writer out = new BufferedWriter(new OutputStreamWriter(outputStream));
+            if (Files.isDirectory(path)) {
                 final List<Path> files = new ArrayList<>(pathStream.toList());
                 files.remove(path);
                 for (Path file : files) {
                     writeFile(arguments, out, file);
                     out.write('\n');
                 }
-                out.close();
+            } else {
+                writeFile(arguments, out, path);
             }
+            out.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
