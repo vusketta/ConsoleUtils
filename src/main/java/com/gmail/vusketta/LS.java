@@ -14,7 +14,7 @@ public class LS {
         LSArguments arguments = new LSArguments(args);
 
         final Path path = Path.of(arguments.getDirectoryOrFile());
-        try (Stream<Path> pathStream = Files.walk(Paths.get(arguments.getDirectoryOrFile()))
+        try (Stream<Path> pathStream = Files.walk(Paths.get(arguments.getDirectoryOrFile()), 1)
                 .sorted(arguments.isReverse() ? Comparator.reverseOrder() : Comparator.naturalOrder())) {
             Writer out = new BufferedWriter(
                     new OutputStreamWriter(
