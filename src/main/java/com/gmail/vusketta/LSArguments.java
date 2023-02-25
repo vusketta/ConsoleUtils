@@ -32,7 +32,12 @@ public class LSArguments {
     private String directory_or_file;
 
     public LSArguments(String[] args) {
-        parseArguments(args);
+        final CmdLineParser parser = new CmdLineParser(this);
+        try {
+            parser.parseArgument(args);
+        } catch (CmdLineException e) {
+            e.printStackTrace();
+        }
     }
 
     public boolean isLong() {
@@ -53,13 +58,5 @@ public class LSArguments {
 
     public String getDirectoryOrFile() {
         return directory_or_file;
-    }
-   private void parseArguments(final String[] args) {
-        final CmdLineParser parser = new CmdLineParser(this);
-        try {
-            parser.parseArgument(args);
-        } catch (CmdLineException e) {
-            e.printStackTrace();
-        }
     }
 }
