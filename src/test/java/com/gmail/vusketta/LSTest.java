@@ -1,76 +1,137 @@
 package com.gmail.vusketta;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.nio.file.attribute.FileTime;
+import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+import com.gmail.vusketta.LSUtils.LSFile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class LSTest {
+    private static String directory = "testDirectory";
+    private static String output = "test.out";
+    private static String file = "file";
+
+    @BeforeAll
+    static void createDirectory() {
+        try {
+            Files.createDirectory(Path.of(directory));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @AfterAll
+    static void deleteDirectory() {
+        try {
+            Files.delete(Path.of(directory));
+            Files.delete(Path.of(output));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Test
     void simpleDirectoryTest() {
-        String[] command = "-o file.out files".split(" ");
-        LS.main(command);
-        assertFileContent("file.out", """
-                directory
-                file1.txt
-                file2
-                file3.out
-                file4.in
-                """);
+        final List<LSFile> files = createFiles().stream().sorted().toList();
+        final String[] commands = ("-o " + output + " " + directory).split(" ");
+        LS.main(commands);
+        final List<String> fileNames = files.stream().map(LSFile::name).toList();
+        deleteFiles(fileNames);
+        final String expectedContent = String.join("\n", fileNames) + '\n';
+        assertFileContent(output, expectedContent);
     }
 
     @Test
     void longFormatTest() {
-        String[] command = "-l -o file.out files".split(" ");
-        LS.main(command);
-        assertFileContent("file.out", """
-                directory 111 02/24/2023 12:32:16 0 byte(s)
-                file1.txt 111 02/24/2023 12:28:26 1367 byte(s)
-                file2 111 02/24/2023 12:28:26 138876 byte(s)
-                file3.out 111 02/24/2023 12:28:26 0 byte(s)
-                file4.in 111 02/24/2023 12:28:26 352 byte(s)
-                """);
+        final List<LSFile> files = createFiles().stream().sorted().toList();
+        final String[] commands = ("-l -o " + output + " " + directory).split(" ");
+        LS.main(commands);
+        final List<String> fileNames = files.stream().map(LSFile::name).toList();
+        deleteFiles(fileNames);
+        final List<String> expectedLines = new ArrayList<>();
+        for (LSFile file: files) {
+            expectedLines.add(file.name() + " " +
+                    LSUtils.getRights(file.rights(), false) + " " +
+                    LSUtils.getTime(file.lastModifiedTime()) + " " +
+                    LSUtils.getMemory(file.bytes() + 2, false)
+            );
+        }
+        final String expectedContent = String.join("\n", expectedLines) + '\n';
+        assertFileContent(output, expectedContent);
     }
 
     @Test
     void humanReadableTest() {
-        String[] command = "-l -h -o file.out files".split(" ");
-        LS.main(command);
-        assertFileContent("file.out", """
-                directory rwx 02/24/2023 12:32:16 0 byte(s)
-                file1.txt rwx 02/24/2023 12:28:26 2.0 kilobyte(s)
-                file2 rwx 02/24/2023 12:28:26 136.0 kilobyte(s)
-                file3.out rwx 02/24/2023 12:28:26 0 byte(s)
-                file4.in rwx 02/24/2023 12:28:26 352 byte(s)
-                """);
+        final List<LSFile> files = createFiles().stream().sorted().toList();
+        final String[] commands = ("-l -h -o " + output + " " + directory).split(" ");
+        LS.main(commands);
+        final List<String> fileNames = files.stream().map(LSFile::name).toList();
+        deleteFiles(fileNames);
+        final List<String> expectedLines = new ArrayList<>();
+        for (LSFile file: files) {
+            expectedLines.add(file.name() + " " +
+                    LSUtils.getRights(file.rights(), true) + " " +
+                    LSUtils.getTime(file.lastModifiedTime()) + " " +
+                    LSUtils.getMemory(file.bytes() + 2, true)
+            );
+        }
+        final String expectedContent = String.join("\n", expectedLines) + '\n';
+        assertFileContent(output, expectedContent);
     }
 
     @Test
     void reverseTest() {
-        String[] command = "-l -h -r -o file.out files".split(" ");
-        LS.main(command);
-        assertFileContent("file.out", """
-                file4.in rwx 02/24/2023 12:28:26 352 byte(s)
-                file3.out rwx 02/24/2023 12:28:26 0 byte(s)
-                file2 rwx 02/24/2023 12:28:26 136.0 kilobyte(s)
-                file1.txt rwx 02/24/2023 12:28:26 2.0 kilobyte(s)
-                directory rwx 02/24/2023 12:32:16 0 byte(s)
-                """);
+        final List<LSFile> files = createFiles().stream().sorted(Comparator.reverseOrder()).toList();
+        final String[] commands = ("-l -h -r -o " + output + " " + directory).split(" ");
+        LS.main(commands);
+        final List<String> fileNames = files.stream().map(LSFile::name).toList();
+        deleteFiles(fileNames);
+        final List<String> expectedLines = new ArrayList<>();
+        for (LSFile file: files) {
+            expectedLines.add(file.name() + " " +
+                    LSUtils.getRights(file.rights(), true) + " " +
+                    LSUtils.getTime(file.lastModifiedTime()) + " " +
+                    LSUtils.getMemory(file.bytes() + 2, true)
+            );
+        }
+        final String expectedContent = String.join("\n", expectedLines) + '\n';
+        assertFileContent(output, expectedContent);
     }
 
     @Test
     void consoleTest() {
-        try (PrintStream console = new PrintStream("console.txt")) {
-            String[] command = "pom.xml".split(" ");
+        try (PrintStream console = new PrintStream("console")) {
+            final List<LSFile> files = createFiles().stream().sorted().toList();
+            final String[] commands = ("-l -h " + directory).split(" ");
             System.setOut(console);
-            LS.main(command);
+            LS.main(commands);
+            deleteFiles(files.stream().map(LSFile::name).toList());
             System.out.flush();
             System.setOut(System.out);
-            assertFileContent("console.txt", "pom.xml");
+            final List<String> expectedLines = new ArrayList<>();
+            for (LSFile file: files) {
+                expectedLines.add(file.name() + " " +
+                        LSUtils.getRights(file.rights(), true) + " " +
+                        LSUtils.getTime(file.lastModifiedTime()) + " " +
+                        LSUtils.getMemory(file.bytes() + 2, true)
+                );
+            }
+            final String expectedContent = String.join("\n", expectedLines) + '\n';
+            assertFileContent("console", expectedContent);
+            Files.deleteIfExists(Path.of("console"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -78,15 +139,53 @@ class LSTest {
 
     @Test
     void simpleFileTest() {
-        String[] command = "-o file.out pom.xml".split(" ");
-        LS.main(command);
-        assertFileContent("file.out", "pom.xml");
+        String[] commands = ("-o " + output + " " + file).split(" ");
+        try {
+            Files.createFile(Path.of(file));
+            LS.main(commands);
+            Files.deleteIfExists(Path.of(file));
+            assertFileContent(output, file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    private void assertFileContent(String fileName, String expectedContent) {
+    private void assertFileContent(final String fileName, final String expectedContent) {
         try {
             String content = new String(Files.readAllBytes(Paths.get(fileName)));
             assertEquals(expectedContent, content);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private List<LSFile> createFiles() {
+        final List<LSFile> files = new ArrayList<>();
+        try {
+            final int fileNumbers = new Random().nextInt(5, 25);
+            for (int i = 0; i < fileNumbers; i++) {
+                final String fileName = RandomStringUtils.randomAlphabetic(5, 11);
+                files.add(generateFile(fileName, FileTime.fromMillis(10000)));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return files;
+    }
+
+    private LSFile generateFile(final String name, final FileTime time) throws IOException {
+        final Path file = Path.of(directory, name);
+        final int bytes = new Random().nextInt(0, 30000);
+        Files.write(file, Arrays.asList(RandomStringUtils.randomAlphabetic(bytes)));
+        Files.setLastModifiedTime(file, time);
+        return new LSFile(name, List.of(true, true, true), time, bytes);
+    }
+
+    private void deleteFiles(final List<String> files) {
+        try {
+            for (String file : files) {
+                Files.deleteIfExists(Path.of(directory, file));
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

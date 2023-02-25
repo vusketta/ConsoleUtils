@@ -54,7 +54,7 @@ public class LSArguments {
     public String getDirectoryOrFile() {
         return directory_or_file;
     }
-   private void parseArguments(String[] args) {
+   private void parseArguments(final String[] args) {
         final CmdLineParser parser = new CmdLineParser(this);
         try {
             parser.parseArgument(args);
