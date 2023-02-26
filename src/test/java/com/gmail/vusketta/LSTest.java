@@ -9,10 +9,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
-import java.nio.file.attribute.PosixFileAttributes;
-import java.nio.file.attribute.PosixFilePermission;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import com.gmail.vusketta.LSUtils.LSFile;
@@ -20,9 +16,8 @@ import com.gmail.vusketta.LSUtils.LSFile;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class LSTest {
-    private static String directory = "testDirectory";
-    private static String output = "test.out";
-    private static String file = "file";
+    private static final String directory = "testDirectory";
+    private static final String output = "test.out";
 
     @BeforeAll
     static void createDirectory() {
@@ -62,7 +57,7 @@ class LSTest {
         final List<String> fileNames = files.stream().map(LSFile::name).toList();
         deleteFiles(fileNames);
         final List<String> expectedLines = new ArrayList<>();
-        for (LSFile file: files) {
+        for (final LSFile file: files) {
             expectedLines.add(file.name() + " " +
                     LSUtils.getRights(file.rights(), false) + " " +
                     LSUtils.getTime(file.lastModifiedTime()) + " " +
@@ -81,7 +76,7 @@ class LSTest {
         final List<String> fileNames = files.stream().map(LSFile::name).toList();
         deleteFiles(fileNames);
         final List<String> expectedLines = new ArrayList<>();
-        for (LSFile file: files) {
+        for (final LSFile file: files) {
             expectedLines.add(file.name() + " " +
                     LSUtils.getRights(file.rights(), true) + " " +
                     LSUtils.getTime(file.lastModifiedTime()) + " " +
@@ -100,7 +95,7 @@ class LSTest {
         final List<String> fileNames = files.stream().map(LSFile::name).toList();
         deleteFiles(fileNames);
         final List<String> expectedLines = new ArrayList<>();
-        for (LSFile file: files) {
+        for (final LSFile file: files) {
             expectedLines.add(file.name() + " " +
                     LSUtils.getRights(file.rights(), true) + " " +
                     LSUtils.getTime(file.lastModifiedTime()) + " " +
@@ -122,7 +117,7 @@ class LSTest {
             System.out.flush();
             System.setOut(System.out);
             final List<String> expectedLines = new ArrayList<>();
-            for (LSFile file: files) {
+            for (final LSFile file: files) {
                 expectedLines.add(file.name() + " " +
                         LSUtils.getRights(file.rights(), true) + " " +
                         LSUtils.getTime(file.lastModifiedTime()) + " " +
@@ -139,11 +134,13 @@ class LSTest {
 
     @Test
     void simpleFileTest() {
-        String[] commands = ("-o " + output + " " + file).split(" ");
+        final String file = "file";
+        final String[] commands = ("-o " + output + " " + file).split(" ");
         try {
-            Files.createFile(Path.of(file));
+            final Path path = Path.of("file");
+            Files.createFile(path);
             LS.main(commands);
-            Files.deleteIfExists(Path.of(file));
+            Files.deleteIfExists(path);
             assertFileContent(output, file);
         } catch (IOException e) {
             e.printStackTrace();
@@ -152,7 +149,7 @@ class LSTest {
 
     private void assertFileContent(final String fileName, final String expectedContent) {
         try {
-            String content = new String(Files.readAllBytes(Paths.get(fileName)));
+            final String content = new String(Files.readAllBytes(Paths.get(fileName)));
             assertEquals(expectedContent, content);
         } catch (IOException e) {
             e.printStackTrace();
@@ -176,14 +173,14 @@ class LSTest {
     private LSFile generateFile(final String name, final FileTime time) throws IOException {
         final Path file = Path.of(directory, name);
         final int bytes = new Random().nextInt(0, 30000);
-        Files.write(file, Arrays.asList(RandomStringUtils.randomAlphabetic(bytes)));
+        Files.write(file, List.of(RandomStringUtils.randomAlphabetic(bytes)));
         Files.setLastModifiedTime(file, time);
         return new LSFile(name, List.of(true, true, true), time, bytes);
     }
 
     private void deleteFiles(final List<String> files) {
         try {
-            for (String file : files) {
+            for (final String file : files) {
                 Files.deleteIfExists(Path.of(directory, file));
             }
         } catch (IOException e) {
